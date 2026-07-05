@@ -11,9 +11,6 @@ workflows:
       java: 17
 
     scripts:
-      # Generate the android/ (and ios/, web/, etc.) native folders that are
-      # not stored in the repo.  --project-name must match pubspec.yaml "name".
-      # The command is safe to run even when some folders already exist.
       - name: Generate native project folders (flutter create)
         script: |
           flutter create . \
@@ -21,7 +18,20 @@ workflows:
             --org com.dizzytv \
             --platforms android
 
-      # Place google-services.json where the Android build expects it
+      - name: Patch withValues to withOpacity for Flutter 3.22.2 compatibility
+        script: |
+          python3 << 'PYEOF'
+          import re, os
+          for root, dirs, files in os.walk('.'):
+              for fname in files:
+                  if fname.endswith('.dart'):
+                      fpath = os.path.join(root, fname)
+                      original = open(fpath, encoding='utf-8').read()
+                      patched = re.sub(r'\.withValues\((?:alpha:\s*)?', '.withOpacity(', original)
+                      if patched != original:
+                          open(fpath, 'w', encoding='utf-8').write(patched)
+          PYEOF
+
       - name: Copy google-services.json
         script: |
           cp android_setup_files/app/google-services.json android/app/google-services.json
@@ -57,16 +67,16 @@ workflows:
     environment:
       flutter: 3.22.2
       java: 17
-      # Add these secrets in Codemagic → App settings → Environment variables:
-      #   CM_KEYSTORE        – base64-encoded .jks / .keystore file
-      #   CM_KEY_ALIAS       – key alias
-      #   CM_KEY_PASSWORD    – key password
-      #   CM_STORE_PASSWORD  – keystore password
+      # Add these in Codemagic → App settings → Environment variables
+      # group name: keystore_credentials
+      #   CM_KEYSTORE       – base64-encoded .jks file
+      #   CM_KEY_ALIAS      – key alias
+      #   CM_KEY_PASSWORD   – key password
+      #   CM_STORE_PASSWORD – keystore password
       groups:
-        - keystore_credentials   # create this group in Codemagic with the vars above
+        - keystore_credentials
 
     scripts:
-      # Generate native project folders
       - name: Generate native project folders (flutter create)
         script: |
           flutter create . \
@@ -74,18 +84,30 @@ workflows:
             --org com.dizzytv \
             --platforms android
 
-      # Decode and write the keystore
+      - name: Patch withValues to withOpacity for Flutter 3.22.2 compatibility
+        script: |
+          python3 << 'PYEOF'
+          import re, os
+          for root, dirs, files in os.walk('.'):
+              for fname in files:
+                  if fname.endswith('.dart'):
+                      fpath = os.path.join(root, fname)
+                      original = open(fpath, encoding='utf-8').read()
+                      patched = re.sub(r'\.withValues\((?:alpha:\s*)?', '.withOpacity(', original)
+                      if patched != original:
+                          open(fpath, 'w', encoding='utf-8').write(patched)
+          PYEOF
+
       - name: Set up keystore
         script: |
           echo $CM_KEYSTORE | base64 --decode > $CM_BUILD_DIR/keystore.jks
-          cat >> "$CM_BUILD_DIR/android/key.properties" <<EOF
+          cat >> "$CM_BUILD_DIR/android/key.properties" << KEOF
           storePassword=$CM_STORE_PASSWORD
           keyPassword=$CM_KEY_PASSWORD
           keyAlias=$CM_KEY_ALIAS
           storeFile=$CM_BUILD_DIR/keystore.jks
-          EOF
+          KEOF
 
-      # Place google-services.json where the Android build expects it
       - name: Copy google-services.json
         script: |
           cp android_setup_files/app/google-services.json android/app/google-services.json
