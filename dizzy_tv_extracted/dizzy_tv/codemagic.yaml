@@ -7,10 +7,20 @@ workflows:
     name: Android Debug APK
     max_build_duration: 60
     environment:
-      flutter: 3.22.2        # Pin to a stable 3.x release; bump as needed
+      flutter: 3.22.2
       java: 17
 
     scripts:
+      # Generate the android/ (and ios/, web/, etc.) native folders that are
+      # not stored in the repo.  --project-name must match pubspec.yaml "name".
+      # The command is safe to run even when some folders already exist.
+      - name: Generate native project folders (flutter create)
+        script: |
+          flutter create . \
+            --project-name dizzy_tv \
+            --org com.dizzytv \
+            --platforms android
+
       # Place google-services.json where the Android build expects it
       - name: Copy google-services.json
         script: |
@@ -56,6 +66,14 @@ workflows:
         - keystore_credentials   # create this group in Codemagic with the vars above
 
     scripts:
+      # Generate native project folders
+      - name: Generate native project folders (flutter create)
+        script: |
+          flutter create . \
+            --project-name dizzy_tv \
+            --org com.dizzytv \
+            --platforms android
+
       # Decode and write the keystore
       - name: Set up keystore
         script: |
@@ -84,7 +102,7 @@ workflows:
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
-      - build/app/outputs/mapping/release/mapping.txt   # ProGuard map (useful for crash reports)
+      - build/app/outputs/mapping/release/mapping.txt
 
     publishing:
       email:
