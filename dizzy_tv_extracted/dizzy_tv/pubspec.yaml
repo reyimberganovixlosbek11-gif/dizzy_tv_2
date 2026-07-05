@@ -1,0 +1,50 @@
+name: dizzy_tv
+description: Dizzy.tv - Kino ko'rish ilovasi
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # Firebase
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
+  firebase_storage: ^11.7.7
+  google_sign_in: ^6.2.1
+
+  # State management
+  provider: ^6.1.2
+
+  # Video player (Cloudflare R2 dan HLS/MP4 oqim uchun)
+  video_player: ^2.9.1
+  chewie: ^1.8.3
+
+  # UI / rasm
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  carousel_slider: ^5.0.0
+  smooth_page_indicator: ^1.1.0
+
+  # Foydali
+  flutter_svg: ^2.0.10+1
+  intl: ^0.19.0
+  shared_preferences: ^2.2.3
+  fluttertoast: ^8.2.5
+  flutter_rating_bar: ^4.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

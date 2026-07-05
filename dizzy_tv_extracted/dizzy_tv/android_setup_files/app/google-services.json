@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "793170387114",
+    "project_id": "isobek-b1c1f",
+    "storage_bucket": "isobek-b1c1f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793170387114:android:3f5e5425e72a07744c30d3",
+        "android_client_info": {
+          "package_name": "com.dizzytv.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuVA4Xph9Ant9hc9cAew9muu4VQDunHIo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
