@@ -1,7 +1,7 @@
 workflows:
 
   # ──────────────────────────────────────────────
-  # 1. Debug APK  (no signing required)
+  # 1. Debug APK
   # ──────────────────────────────────────────────
   android-debug:
     name: Android Debug APK
@@ -11,44 +11,6 @@ workflows:
       java: 17
 
     scripts:
-      - name: Generate native project folders (flutter create)
-        script: |
-          set -e
-          flutter create . \
-            --project-name dizzy_tv \
-            --org com.dizzytv \
-            --platforms android
-
-      - name: Patch withValues to withOpacity for Flutter 3.22.2 compatibility
-        script: |
-          set -e
-          python3 << 'PYEOF'
-import re
-import os
-
-pattern = re.compile(r'\.withValues\((?:alpha:\s*)?')
-
-for root, dirs, files in os.walk('.'):
-    # Skip hidden dirs and build output
-    dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'build']
-    for fname in files:
-        if fname.endswith('.dart'):
-            fpath = os.path.join(root, fname)
-            try:
-                original = open(fpath, encoding='utf-8').read()
-                patched = pattern.sub('.withOpacity(', original)
-                if patched != original:
-                    open(fpath, 'w', encoding='utf-8').write(patched)
-                    print(f'Patched: {fpath}')
-            except Exception as e:
-                print(f'Skipped {fpath}: {e}')
-PYEOF
-
-      - name: Copy google-services.json
-        script: |
-          set -e
-          cp android_setup_files/app/google-services.json android/app/google-services.json
-
       - name: Get Flutter packages
         script: |
           set -e
@@ -68,14 +30,14 @@ PYEOF
     publishing:
       email:
         recipients:
-          - your@email.com   # ← replace with your e-mail
+          - your@email.com
         notify:
           success: true
           failure: true
 
 
   # ──────────────────────────────────────────────
-  # 2. Release APK  (requires keystore secrets)
+  # 2. Release APK  (signed with debug key — same as working repo)
   # ──────────────────────────────────────────────
   android-release:
     name: Android Release APK
@@ -83,69 +45,8 @@ PYEOF
     environment:
       flutter: 3.22.2
       java: 17
-      # Add these in Codemagic → App settings → Environment variables
-      # group name: keystore_credentials
-      #   CM_KEYSTORE       – base64-encoded .jks file
-      #   CM_KEY_ALIAS      – key alias
-      #   CM_KEY_PASSWORD   – key password
-      #   CM_STORE_PASSWORD – keystore password
-      groups:
-        - keystore_credentials
 
     scripts:
-      - name: Generate native project folders (flutter create)
-        script: |
-          set -e
-          flutter create . \
-            --project-name dizzy_tv \
-            --org com.dizzytv \
-            --platforms android
-
-      - name: Patch withValues to withOpacity for Flutter 3.22.2 compatibility
-        script: |
-          set -e
-          python3 << 'PYEOF'
-import re
-import os
-
-pattern = re.compile(r'\.withValues\((?:alpha:\s*)?')
-
-for root, dirs, files in os.walk('.'):
-    dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'build']
-    for fname in files:
-        if fname.endswith('.dart'):
-            fpath = os.path.join(root, fname)
-            try:
-                original = open(fpath, encoding='utf-8').read()
-                patched = pattern.sub('.withOpacity(', original)
-                if patched != original:
-                    open(fpath, 'w', encoding='utf-8').write(patched)
-                    print(f'Patched: {fpath}')
-            except Exception as e:
-                print(f'Skipped {fpath}: {e}')
-PYEOF
-
-      - name: Set up keystore
-        script: |
-          set -e
-          echo "$CM_KEYSTORE" | base64 --decode > keystore.jks
-          cat > android/key.properties << 'KEOF'
-storePassword=STORE_PASSWORD_PLACEHOLDER
-keyPassword=KEY_PASSWORD_PLACEHOLDER
-keyAlias=KEY_ALIAS_PLACEHOLDER
-storeFile=../../../keystore.jks
-KEOF
-          # Replace placeholders with actual secret values
-          sed -i.bak "s|STORE_PASSWORD_PLACEHOLDER|${CM_STORE_PASSWORD}|g" android/key.properties
-          sed -i.bak "s|KEY_PASSWORD_PLACEHOLDER|${CM_KEY_PASSWORD}|g" android/key.properties
-          sed -i.bak "s|KEY_ALIAS_PLACEHOLDER|${CM_KEY_ALIAS}|g" android/key.properties
-          rm -f android/key.properties.bak
-
-      - name: Copy google-services.json
-        script: |
-          set -e
-          cp android_setup_files/app/google-services.json android/app/google-services.json
-
       - name: Get Flutter packages
         script: |
           set -e
@@ -166,7 +67,7 @@ KEOF
     publishing:
       email:
         recipients:
-          - your@email.com   # ← replace with your e-mail
+          - your@email.com
         notify:
           success: true
           failure: true

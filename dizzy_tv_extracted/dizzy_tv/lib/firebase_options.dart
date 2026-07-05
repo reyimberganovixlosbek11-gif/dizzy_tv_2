@@ -1,16 +1,12 @@
-// Bu fayl isobek-b1c1f Firebase loyihasining HAQIQIY ma'lumotlari bilan
-// to'ldirilgan (google-services.json fayldan olindi).
-// Agar kelajakda iOS qo'shsangiz, "flutterfire configure" ni qayta ishga
-// tushirib, iOS uchun ham qiymatlarni avtomatik qo'shdirishingiz mumkin.
-
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       throw UnsupportedError(
-        'Web uchun hali sozlanmagan. Kerak bo\'lsa "flutterfire configure" ni qayta ishga tushiring.',
+        'Web uchun hali sozlanmagan.',
       );
     }
     switch (defaultTargetPlatform) {
@@ -18,7 +14,7 @@ class DefaultFirebaseOptions {
         return android;
       case TargetPlatform.iOS:
         throw UnsupportedError(
-          'iOS uchun hali sozlanmagan. Kerak bo\'lsa "flutterfire configure" ni qayta ishga tushiring.',
+          'iOS uchun hali sozlanmagan.',
         );
       default:
         throw UnsupportedError(
@@ -35,4 +31,3 @@ class DefaultFirebaseOptions {
     storageBucket: 'isobek-b1c1f.firebasestorage.app',
   );
 }
-
