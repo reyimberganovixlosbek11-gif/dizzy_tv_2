@@ -13,6 +13,7 @@ workflows:
     scripts:
       - name: Generate native project folders (flutter create)
         script: |
+          set -e
           flutter create . \
             --project-name dizzy_tv \
             --org com.dizzytv \
@@ -20,27 +21,42 @@ workflows:
 
       - name: Patch withValues to withOpacity for Flutter 3.22.2 compatibility
         script: |
+          set -e
           python3 << 'PYEOF'
-          import re, os
-          for root, dirs, files in os.walk('.'):
-              for fname in files:
-                  if fname.endswith('.dart'):
-                      fpath = os.path.join(root, fname)
-                      original = open(fpath, encoding='utf-8').read()
-                      patched = re.sub(r'\.withValues\((?:alpha:\s*)?', '.withOpacity(', original)
-                      if patched != original:
-                          open(fpath, 'w', encoding='utf-8').write(patched)
-          PYEOF
+import re
+import os
+
+pattern = re.compile(r'\.withValues\((?:alpha:\s*)?')
+
+for root, dirs, files in os.walk('.'):
+    # Skip hidden dirs and build output
+    dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'build']
+    for fname in files:
+        if fname.endswith('.dart'):
+            fpath = os.path.join(root, fname)
+            try:
+                original = open(fpath, encoding='utf-8').read()
+                patched = pattern.sub('.withOpacity(', original)
+                if patched != original:
+                    open(fpath, 'w', encoding='utf-8').write(patched)
+                    print(f'Patched: {fpath}')
+            except Exception as e:
+                print(f'Skipped {fpath}: {e}')
+PYEOF
 
       - name: Copy google-services.json
         script: |
+          set -e
           cp android_setup_files/app/google-services.json android/app/google-services.json
 
       - name: Get Flutter packages
-        script: flutter pub get
+        script: |
+          set -e
+          flutter pub get
 
       - name: Build debug APK
         script: |
+          set -e
           flutter build apk \
             --debug \
             --build-name=1.0.0 \
@@ -79,6 +95,7 @@ workflows:
     scripts:
       - name: Generate native project folders (flutter create)
         script: |
+          set -e
           flutter create . \
             --project-name dizzy_tv \
             --org com.dizzytv \
@@ -86,37 +103,57 @@ workflows:
 
       - name: Patch withValues to withOpacity for Flutter 3.22.2 compatibility
         script: |
+          set -e
           python3 << 'PYEOF'
-          import re, os
-          for root, dirs, files in os.walk('.'):
-              for fname in files:
-                  if fname.endswith('.dart'):
-                      fpath = os.path.join(root, fname)
-                      original = open(fpath, encoding='utf-8').read()
-                      patched = re.sub(r'\.withValues\((?:alpha:\s*)?', '.withOpacity(', original)
-                      if patched != original:
-                          open(fpath, 'w', encoding='utf-8').write(patched)
-          PYEOF
+import re
+import os
+
+pattern = re.compile(r'\.withValues\((?:alpha:\s*)?')
+
+for root, dirs, files in os.walk('.'):
+    dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'build']
+    for fname in files:
+        if fname.endswith('.dart'):
+            fpath = os.path.join(root, fname)
+            try:
+                original = open(fpath, encoding='utf-8').read()
+                patched = pattern.sub('.withOpacity(', original)
+                if patched != original:
+                    open(fpath, 'w', encoding='utf-8').write(patched)
+                    print(f'Patched: {fpath}')
+            except Exception as e:
+                print(f'Skipped {fpath}: {e}')
+PYEOF
 
       - name: Set up keystore
         script: |
-          echo $CM_KEYSTORE | base64 --decode > $CM_BUILD_DIR/keystore.jks
-          cat >> "$CM_BUILD_DIR/android/key.properties" << KEOF
-          storePassword=$CM_STORE_PASSWORD
-          keyPassword=$CM_KEY_PASSWORD
-          keyAlias=$CM_KEY_ALIAS
-          storeFile=$CM_BUILD_DIR/keystore.jks
-          KEOF
+          set -e
+          echo "$CM_KEYSTORE" | base64 --decode > keystore.jks
+          cat > android/key.properties << 'KEOF'
+storePassword=STORE_PASSWORD_PLACEHOLDER
+keyPassword=KEY_PASSWORD_PLACEHOLDER
+keyAlias=KEY_ALIAS_PLACEHOLDER
+storeFile=../../../keystore.jks
+KEOF
+          # Replace placeholders with actual secret values
+          sed -i.bak "s|STORE_PASSWORD_PLACEHOLDER|${CM_STORE_PASSWORD}|g" android/key.properties
+          sed -i.bak "s|KEY_PASSWORD_PLACEHOLDER|${CM_KEY_PASSWORD}|g" android/key.properties
+          sed -i.bak "s|KEY_ALIAS_PLACEHOLDER|${CM_KEY_ALIAS}|g" android/key.properties
+          rm -f android/key.properties.bak
 
       - name: Copy google-services.json
         script: |
+          set -e
           cp android_setup_files/app/google-services.json android/app/google-services.json
 
       - name: Get Flutter packages
-        script: flutter pub get
+        script: |
+          set -e
+          flutter pub get
 
       - name: Build release APK
         script: |
+          set -e
           flutter build apk \
             --release \
             --build-name=1.0.0 \

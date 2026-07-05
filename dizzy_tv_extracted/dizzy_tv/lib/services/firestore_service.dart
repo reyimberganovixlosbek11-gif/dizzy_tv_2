@@ -4,9 +4,12 @@ import '../models/movie_model.dart';
 /// Firestore bilan barcha kino / janr / saqlangan / tarix ishlarini bajaradi
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  CollectionReference get _movies => _db.collection('movies');
-  CollectionReference get _genres => _db.collection('genres');
-  CollectionReference get _banners => _db.collection('banners');
+  CollectionReference<Map<String, dynamic>> get _movies =>
+      _db.collection('movies');
+  CollectionReference<Map<String, dynamic>> get _genres =>
+      _db.collection('genres');
+  CollectionReference<Map<String, dynamic>> get _banners =>
+      _db.collection('banners');
 
   // ---------- BOSH SAHIFA UCHUN OQIMLAR ----------
 
@@ -58,7 +61,7 @@ class FirestoreService {
   Stream<List<GenreModel>> genres() {
     return _genres.orderBy('order').snapshots().map(
           (snap) => snap.docs
-              .map((d) => GenreModel.fromMap(d.id, d.data() as Map<String, dynamic>))
+              .map((d) => GenreModel.fromMap(d.id, d.data()))
               .toList(),
         );
   }
@@ -72,7 +75,8 @@ class FirestoreService {
     String? country,
     double? minRating,
   }) async {
-    Query query = _movies.where('isActive', isEqualTo: true);
+    Query<Map<String, dynamic>> query =
+        _movies.where('isActive', isEqualTo: true);
     if (genre != null) query = query.where('genres', arrayContains: genre);
     if (year != null) query = query.where('year', isEqualTo: year);
     if (country != null) query = query.where('country', isEqualTo: country);
@@ -82,7 +86,8 @@ class FirestoreService {
 
     if (keyword != null && keyword.trim().isNotEmpty) {
       final kw = keyword.toLowerCase();
-      results = results.where((m) => m.title.toLowerCase().contains(kw)).toList();
+      results =
+          results.where((m) => m.title.toLowerCase().contains(kw)).toList();
     }
     if (minRating != null) {
       results = results.where((m) => m.rating >= minRating).toList();
@@ -102,11 +107,11 @@ class FirestoreService {
   }
 
   Future<void> addToHistory(String uid, String movieId) async {
-    await saveWatchProgress(uid: uid, movieId: movieId, positionSeconds: 0, durationSeconds: 0);
+    await saveWatchProgress(
+        uid: uid, movieId: movieId, positionSeconds: 0, durationSeconds: 0);
   }
 
   /// Video ko'rish jarayonini saqlaydi (resume/"Davom ettirish" uchun).
-  /// users/{uid}/watchHistory/{movieId} hujjatida position/duration/vaqt saqlanadi.
   Future<void> saveWatchProgress({
     required String uid,
     required String movieId,
@@ -126,12 +131,18 @@ class FirestoreService {
     }, SetOptions(merge: true));
   }
 
-  Future<Map<String, dynamic>?> getWatchProgress(String uid, String movieId) async {
-    final doc = await _db.collection('users').doc(uid).collection('watchHistory').doc(movieId).get();
+  Future<Map<String, dynamic>?> getWatchProgress(
+      String uid, String movieId) async {
+    final doc = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('watchHistory')
+        .doc(movieId)
+        .get();
     return doc.exists ? doc.data() : null;
   }
 
-  /// To'liq ko'rish tarixi (eng oxirgi ko'rilgandan boshlab)
+  /// To'liq ko'rish tarixi
   Stream<List<Map<String, dynamic>>> watchHistoryStream(String uid) {
     return _db
         .collection('users')
@@ -143,7 +154,7 @@ class FirestoreService {
         .map((snap) => snap.docs.map((d) => d.data()).toList());
   }
 
-  /// "Davom ettirish" bo'limi uchun: tugatilmagan (position < duration*0.95) kinolar
+  /// "Davom ettirish" bo'limi uchun: tugatilmagan kinolar
   Future<List<MovieModel>> continueWatchingMovies(String uid) async {
     final snap = await _db
         .collection('users')
@@ -162,18 +173,21 @@ class FirestoreService {
 
     final ids = unfinished.map((d) => d.id).toList();
     final movies = await getMoviesByIds(ids);
-    // Firestore whereIn tartibni saqlamaydi — vaqt bo'yicha tartibni qayta tiklaymiz
-    movies.sort((a, b) => ids.indexOf(a.id).compareTo(ids.indexOf(b.id)));
+    movies.sort(
+        (a, b) => ids.indexOf(a.id).compareTo(ids.indexOf(b.id)));
     return movies;
   }
 
   Future<void> incrementViews(String movieId) async {
-    await _movies.doc(movieId).update({'viewsCount': FieldValue.increment(1)});
+    await _movies
+        .doc(movieId)
+        .update({'viewsCount': FieldValue.increment(1)});
   }
 
   Future<List<MovieModel>> getMoviesByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
-    final snap = await _movies.where(FieldPath.documentId, whereIn: ids).get();
+    final snap =
+        await _movies.where(FieldPath.documentId, whereIn: ids).get();
     return _mapSnapshot(snap);
   }
 
@@ -185,34 +199,37 @@ class FirestoreService {
   Future<void> deleteMovie(String id) => _movies.doc(id).delete();
 
   Future<void> addGenre(GenreModel genre) => _genres.add(genre.toMap());
-  Future<void> updateGenre(String id, Map<String, dynamic> data) => _genres.doc(id).update(data);
+  Future<void> updateGenre(String id, Map<String, dynamic> data) =>
+      _genres.doc(id).update(data);
   Future<void> deleteGenre(String id) => _genres.doc(id).delete();
 
   // ---------- BANNERLAR (admin) ----------
-  // Banner = bosh sahifa sliderida ko'rsatiladigan alohida yozuv.
-  // Odatda mavjud kinolardan biriga bog'lanadi (movieId), lekin
-  // o'z rasmi va sarlavhasi bilan mustaqil ko'rsatilishi ham mumkin.
 
   Stream<List<Map<String, dynamic>>> bannersStream() {
     return _banners.orderBy('order').snapshots().map(
           (snap) => snap.docs
-              .map((d) => {'id': d.id, ...(d.data() as Map<String, dynamic>)})
+              .map((d) => <String, dynamic>{'id': d.id, ...d.data()})
               .toList(),
         );
   }
 
   Future<void> addBanner(Map<String, dynamic> data) => _banners.add(data);
-  Future<void> updateBanner(String id, Map<String, dynamic> data) => _banners.doc(id).update(data);
+  Future<void> updateBanner(String id, Map<String, dynamic> data) =>
+      _banners.doc(id).update(data);
   Future<void> deleteBanner(String id) => _banners.doc(id).delete();
 
-  // ---------- ADMIN: barcha kinolarni ko'rish (faol/nofaol farqisiz) ----------
+  // ---------- ADMIN: barcha kinolarni ko'rish ----------
   Stream<List<MovieModel>> allMoviesAdmin() {
-    return _movies.orderBy('createdAt', descending: true).snapshots().map(_mapSnapshot);
+    return _movies
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(_mapSnapshot);
   }
 
-  List<MovieModel> _mapSnapshot(QuerySnapshot snap) {
+  List<MovieModel> _mapSnapshot(
+      QuerySnapshot<Map<String, dynamic>> snap) {
     return snap.docs
-        .map((d) => MovieModel.fromMap(d.id, d.data() as Map<String, dynamic>))
+        .map((d) => MovieModel.fromMap(d.id, d.data()))
         .toList();
   }
 }
